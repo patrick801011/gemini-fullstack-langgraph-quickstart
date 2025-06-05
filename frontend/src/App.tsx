@@ -39,15 +39,27 @@ export default function App() {
       } else if (event.web_research) {
         const sources = event.web_research.sources_gathered || [];
         const numSources = sources.length;
-        const uniqueLabels = [
-          ...new Set(sources.map((s: any) => s.label).filter(Boolean)),
-        ];
-        const exampleLabels = uniqueLabels.slice(0, 3).join(", ");
+        let sourcesDetails = "";
+        if (numSources > 0) {
+          sourcesDetails = sources.slice(0, 3).map((source: any, index: number) => {
+            const title = source.title || "No title";
+            const snippet = source.snippet || "No snippet";
+            // Limit snippet length to avoid overly long lines
+            const shortSnippet = snippet.length > 100 ? snippet.substring(0, 97) + "..." : snippet;
+            return `Source ${index + 1}: ${title} - ${shortSnippet}`;
+          }).join("\n");
+        }
+
+        let dataString = `Gathered ${numSources} sources.`;
+        if (numSources > 0) {
+          dataString += ` Top sources:\n${sourcesDetails}`;
+        } else {
+          dataString += " No sources found.";
+        }
+
         processedEvent = {
           title: "Web Research",
-          data: `Gathered ${numSources} sources. Related to: ${
-            exampleLabels || "N/A"
-          }.`,
+          data: dataString,
         };
       } else if (event.reflection) {
         processedEvent = {
