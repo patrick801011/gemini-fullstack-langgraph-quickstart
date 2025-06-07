@@ -14,6 +14,7 @@ export default function App() {
   >({});
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const hasFinalizeEventOccurredRef = useRef(false);
+  const [isAiResponseComplete, setIsAiResponseComplete] = useState(false);
 
   const thread = useStream<{
     messages: Message[];
@@ -27,7 +28,11 @@ export default function App() {
     assistantId: "agent",
     messagesKey: "messages",
     onFinish: (event: any) => {
-      console.log(event);
+      console.log("Stream finished:", event); // Optional: for debugging
+      // Only set true if a finalize_answer event actually occurred during this stream.
+      if (hasFinalizeEventOccurredRef.current) {
+        setIsAiResponseComplete(true);
+      }
     },
     onUpdateEvent: (event: any) => {
       let processedEvent: ProcessedEvent | null = null;
@@ -98,27 +103,27 @@ export default function App() {
   }, [thread.messages]);
 
   useEffect(() => {
-    if (
-      hasFinalizeEventOccurredRef.current &&
-      !thread.isLoading &&
-      thread.messages.length > 0
-    ) {
+    if (isAiResponseComplete && thread.messages.length > 0) {
       const lastMessage = thread.messages[thread.messages.length - 1];
       if (lastMessage && lastMessage.type === "ai" && lastMessage.id) {
+        // Capture the timeline as it is when AI response is marked complete.
         setHistoricalActivities((prev) => ({
           ...prev,
           [lastMessage.id!]: [...processedEventsTimeline],
         }));
       }
+      // Reset flags for the next interaction cycle
+      setIsAiResponseComplete(false);
       hasFinalizeEventOccurredRef.current = false;
     }
-  }, [thread.messages, thread.isLoading, processedEventsTimeline]);
+  }, [isAiResponseComplete, thread.messages, processedEventsTimeline]); // Dependencies
 
   const handleSubmit = useCallback(
     (submittedInputValue: string, effort: string, model: string) => {
       if (!submittedInputValue.trim()) return;
       setProcessedEventsTimeline([]);
       hasFinalizeEventOccurredRef.current = false;
+      setIsAiResponseComplete(false); // Add this line
 
       // convert effort to, initial_search_query_count and max_research_loops
       // low means max 1 loop and 1 query
