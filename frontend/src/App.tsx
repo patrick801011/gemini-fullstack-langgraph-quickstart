@@ -1,14 +1,11 @@
 import { useStream } from "@langchain/langgraph-sdk/react";
 import type { Message } from "@langchain/langgraph-sdk";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useTranslation } from 'react-i18next'; // Import useTranslation
 import { ProcessedEvent } from "@/components/ActivityTimeline";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { ChatMessagesView } from "@/components/ChatMessagesView";
-import LanguageSwitcher from "@/components/LanguageSwitcher"; // Import LanguageSwitcher
 
 export default function App() {
-  const { t } = useTranslation(); // Initialize t function
   const [processedEventsTimeline, setProcessedEventsTimeline] = useState<
     ProcessedEvent[]
   >([]);
@@ -51,8 +48,12 @@ export default function App() {
         }
         processedEvent = {
           title: "Generating Search Queries",
+<<<<<<< HEAD
           data: queryData,
 
+=======
+          data: event.generate_query.query_list.join(", "),
+>>>>>>> parent of 5d5c8d6 (feat: Apply brighter color scheme and add Traditional Chinese localization)
         };
       } else if (event.web_research) {
         const sources = event.web_research.sources_gathered || [];
@@ -68,15 +69,15 @@ export default function App() {
           }).join("\n");
         }
 
-        let dataString = t('app.gatheredSources', { numSources });
+        let dataString = `Gathered ${numSources} sources.`;
         if (numSources > 0) {
-          dataString += ` ${t('app.topSources', { sourcesDetails })}`;
+          dataString += ` Top sources:\n${sourcesDetails}`;
         } else {
-          dataString += ` ${t('app.noSourcesFound')}`;
+          dataString += " No sources found.";
         }
 
         processedEvent = {
-          title: t('app.webResearch'),
+          title: "Web Research",
           data: dataString,
         };
       } else if (event.reflection) {
@@ -92,13 +93,21 @@ export default function App() {
         }
         processedEvent = {
           title: "Reflection",
+<<<<<<< HEAD
           data: reflectionData,
 
+=======
+          data: event.reflection.is_sufficient
+            ? "Search successful, generating final answer."
+            : `Need more information, searching for ${event.reflection.follow_up_queries.join(
+                ", "
+              )}`,
+>>>>>>> parent of 5d5c8d6 (feat: Apply brighter color scheme and add Traditional Chinese localization)
         };
       } else if (event.finalize_answer) {
         processedEvent = {
-          title: t('app.finalizingAnswer'),
-          data: t('app.composingFinalAnswer'),
+          title: "Finalizing Answer",
+          data: "Composing and presenting the final answer.",
         };
         hasFinalizeEventOccurredRef.current = true;
       }
@@ -191,7 +200,6 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-neutral-800 text-neutral-100 font-sans antialiased">
-      <LanguageSwitcher /> {/* Add LanguageSwitcher here */}
       <main className="flex-1 flex flex-col overflow-hidden max-w-4xl mx-auto w-full">
         <div
           className={`flex-1 overflow-y-auto ${

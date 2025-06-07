@@ -2,7 +2,6 @@ import type React from "react";
 import type { Message } from "@langchain/langgraph-sdk";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Copy, CopyCheck } from "lucide-react";
-import { useTranslation } from "react-i18next"; // Import useTranslation
 import { InputForm } from "@/components/InputForm";
 import { Button } from "@/components/ui/button";
 import { useState, ReactNode } from "react";
@@ -182,7 +181,6 @@ const AiMessageBubble: React.FC<AiMessageBubbleProps> = ({
   handleCopy,
   copiedMessageId,
 }) => {
-  const { t } = useTranslation(); // Initialize t function for AiMessageBubble
   // Determine which activity events to show and if it's for a live loading message
   const activityForThisBubble =
     isLastMessage && isOverallLoading ? liveActivity : historicalActivity;
@@ -215,7 +213,7 @@ const AiMessageBubble: React.FC<AiMessageBubbleProps> = ({
           )
         }
       >
-        {copiedMessageId === message.id ? t('chatMessagesView.copied') : t('chatMessagesView.copy')}
+        {copiedMessageId === message.id ? "Copied" : "Copy"}
         {copiedMessageId === message.id ? <CopyCheck /> : <Copy />}
       </Button>
     </div>
@@ -241,7 +239,6 @@ export function ChatMessagesView({
   liveActivityEvents,
   historicalActivities,
 }: ChatMessagesViewProps) {
-  const { t } = useTranslation(); // Initialize t function for ChatMessagesView
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
 
   const handleCopy = async (text: string, messageId: string) => {
@@ -305,7 +302,7 @@ export function ChatMessagesView({
                   ) : (
                     <div className="flex items-center justify-start h-full">
                       <Loader2 className="h-5 w-5 animate-spin text-neutral-400 mr-2" />
-                      <span>{t('chatMessagesView.processing')}</span>
+                      <span>Processing...</span>
                     </div>
                   )}
                 </div>

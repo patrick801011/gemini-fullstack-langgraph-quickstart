@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useTranslation } from "react-i18next"; // Import useTranslation
 import { Button } from "@/components/ui/button";
 import { SquarePen, Brain, Send, StopCircle, Zap, Cpu } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,7 +24,6 @@ export const InputForm: React.FC<InputFormProps> = ({
   isLoading,
   hasHistory,
 }) => {
-  const { t } = useTranslation(); // Initialize t function
   const [internalInputValue, setInternalInputValue] = useState("");
   const [effort, setEffort] = useState("medium");
   const [model, setModel] = useState("gemini-2.5-flash-preview-04-17");
@@ -62,7 +60,7 @@ export const InputForm: React.FC<InputFormProps> = ({
           value={internalInputValue}
           onChange={(e) => setInternalInputValue(e.target.value)}
           onKeyDown={handleInternalKeyDown}
-          placeholder={t('inputForm.placeholder')}
+          placeholder="Who won the Euro 2024 and scored the most goals?"
           className={`w-full text-neutral-100 placeholder-neutral-500 resize-none border-0 focus:outline-none focus:ring-0 outline-none focus-visible:ring-0 shadow-none 
                         md:text-base  min-h-[56px] max-h-[200px]`}
           rows={1}
@@ -89,7 +87,7 @@ export const InputForm: React.FC<InputFormProps> = ({
               } p-2 cursor-pointer rounded-full transition-all duration-200 text-base`}
               disabled={isSubmitDisabled}
             >
-              {t('inputForm.search')}
+              Search
               <Send className="h-5 w-5" />
             </Button>
           )}
@@ -100,30 +98,30 @@ export const InputForm: React.FC<InputFormProps> = ({
           <div className="flex flex-row gap-2 bg-neutral-700 border-neutral-600 text-neutral-300 focus:ring-neutral-500 rounded-xl rounded-t-sm pl-2  max-w-[100%] sm:max-w-[90%]">
             <div className="flex flex-row items-center text-sm">
               <Brain className="h-4 w-4 mr-2" />
-              {t('inputForm.effort')}
+              Effort
             </div>
             <Select value={effort} onValueChange={setEffort}>
               <SelectTrigger className="w-[120px] bg-transparent border-none cursor-pointer">
-                <SelectValue placeholder={t('inputForm.effort')} />
+                <SelectValue placeholder="Effort" />
               </SelectTrigger>
               <SelectContent className="bg-neutral-700 border-neutral-600 text-neutral-300 cursor-pointer">
                 <SelectItem
                   value="low"
                   className="hover:bg-neutral-600 focus:bg-neutral-600 cursor-pointer"
                 >
-                  {t('inputForm.effortLow')}
+                  Low
                 </SelectItem>
                 <SelectItem
                   value="medium"
                   className="hover:bg-neutral-600 focus:bg-neutral-600 cursor-pointer"
                 >
-                  {t('inputForm.effortMedium')}
+                  Medium
                 </SelectItem>
                 <SelectItem
                   value="high"
                   className="hover:bg-neutral-600 focus:bg-neutral-600 cursor-pointer"
                 >
-                  {t('inputForm.effortHigh')}
+                  High
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -131,11 +129,11 @@ export const InputForm: React.FC<InputFormProps> = ({
           <div className="flex flex-row gap-2 bg-neutral-700 border-neutral-600 text-neutral-300 focus:ring-neutral-500 rounded-xl rounded-t-sm pl-2  max-w-[100%] sm:max-w-[90%]">
             <div className="flex flex-row items-center text-sm ml-2">
               <Cpu className="h-4 w-4 mr-2" />
-              {t('inputForm.model')}
+              Model
             </div>
             <Select value={model} onValueChange={setModel}>
               <SelectTrigger className="w-[150px] bg-transparent border-none cursor-pointer">
-                <SelectValue placeholder={t('inputForm.model')} />
+                <SelectValue placeholder="Model" />
               </SelectTrigger>
               <SelectContent className="bg-neutral-700 border-neutral-600 text-neutral-300 cursor-pointer">
                 <SelectItem
@@ -143,7 +141,7 @@ export const InputForm: React.FC<InputFormProps> = ({
                   className="hover:bg-neutral-600 focus:bg-neutral-600 cursor-pointer"
                 >
                   <div className="flex items-center">
-                    <Zap className="h-4 w-4 mr-2 text-yellow-400" /> {t('inputForm.model20Flash')}
+                    <Zap className="h-4 w-4 mr-2 text-yellow-400" /> 2.0 Flash
                   </div>
                 </SelectItem>
                 <SelectItem
@@ -151,7 +149,7 @@ export const InputForm: React.FC<InputFormProps> = ({
                   className="hover:bg-neutral-600 focus:bg-neutral-600 cursor-pointer"
                 >
                   <div className="flex items-center">
-                    <Zap className="h-4 w-4 mr-2 text-orange-400" /> {t('inputForm.model25Flash')}
+                    <Zap className="h-4 w-4 mr-2 text-orange-400" /> 2.5 Flash
                   </div>
                 </SelectItem>
                 <SelectItem
@@ -159,7 +157,7 @@ export const InputForm: React.FC<InputFormProps> = ({
                   className="hover:bg-neutral-600 focus:bg-neutral-600 cursor-pointer"
                 >
                   <div className="flex items-center">
-                    <Cpu className="h-4 w-4 mr-2 text-purple-400" /> {t('inputForm.model25Pro')}
+                    <Cpu className="h-4 w-4 mr-2 text-purple-400" /> 2.5 Pro
                   </div>
                 </SelectItem>
               </SelectContent>
@@ -173,7 +171,7 @@ export const InputForm: React.FC<InputFormProps> = ({
             onClick={() => window.location.reload()}
           >
             <SquarePen size={16} />
-            {t('inputForm.newSearch')}
+            New Search
           </Button>
         )}
       </div>
