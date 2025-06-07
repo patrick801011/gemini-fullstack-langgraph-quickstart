@@ -2,7 +2,7 @@ import os
 
 from agent.tools_and_schemas import SearchQueryList, Reflection
 from dotenv import load_dotenv
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, SystemMessage, HumanMessage
 from langgraph.types import Send
 from langgraph.graph import StateGraph
 from langgraph.graph import START, END
@@ -248,7 +248,12 @@ def finalize_answer(state: OverallState, config: RunnableConfig):
         max_retries=2,
         api_key=os.getenv("GEMINI_API_KEY"),
     )
-    result = llm.invoke(formatted_prompt)
+    system_message_content = "請一律使用繁體中文來回答問題，除非使用者明確指定了其他語言。"
+    messages = [
+        SystemMessage(content=system_message_content),
+        HumanMessage(content=formatted_prompt)
+    ]
+    result = llm.invoke(messages)
 
     # Replace the short urls with the original urls and add all used urls to the sources_gathered
     unique_sources = []
