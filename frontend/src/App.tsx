@@ -48,12 +48,10 @@ export default function App() {
         }
         processedEvent = {
           title: "Generating Search Queries",
-<<<<<<< HEAD
+
           data: queryData,
 
-=======
-          data: event.generate_query.query_list.join(", "),
->>>>>>> parent of 5d5c8d6 (feat: Apply brighter color scheme and add Traditional Chinese localization)
+
         };
       } else if (event.web_research) {
         const sources = event.web_research.sources_gathered || [];
@@ -93,16 +91,10 @@ export default function App() {
         }
         processedEvent = {
           title: "Reflection",
-<<<<<<< HEAD
+
           data: reflectionData,
 
-=======
-          data: event.reflection.is_sufficient
-            ? "Search successful, generating final answer."
-            : `Need more information, searching for ${event.reflection.follow_up_queries.join(
-                ", "
-              )}`,
->>>>>>> parent of 5d5c8d6 (feat: Apply brighter color scheme and add Traditional Chinese localization)
+
         };
       } else if (event.finalize_answer) {
         processedEvent = {
