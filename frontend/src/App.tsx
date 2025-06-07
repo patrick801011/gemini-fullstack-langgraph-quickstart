@@ -76,13 +76,19 @@ export default function App() {
           data: dataString,
         };
       } else if (event.reflection) {
+        let reflectionData = "Search successful, generating final answer."; // is_sufficient 為 true 時的預設值
+        if (!event.reflection.is_sufficient) {
+          const followUpQueries = event.reflection.follow_up_queries;
+          if (Array.isArray(followUpQueries) && followUpQueries.length > 0) {
+            reflectionData = `Need more information, searching for ${followUpQueries.join(", ")}`;
+          } else {
+            reflectionData = "Need more information, but no specific follow-up queries provided or list is invalid.";
+            console.warn("event.reflection.follow_up_queries was not a non-empty array:", followUpQueries);
+          }
+        }
         processedEvent = {
           title: "Reflection",
-          data: event.reflection.is_sufficient
-            ? "Search successful, generating final answer."
-            : `Need more information, searching for ${event.reflection.follow_up_queries.join(
-                ", "
-              )}`,
+          data: reflectionData,
         };
       } else if (event.finalize_answer) {
         processedEvent = {
