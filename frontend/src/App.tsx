@@ -1,11 +1,14 @@
 import { useStream } from "@langchain/langgraph-sdk/react";
 import type { Message } from "@langchain/langgraph-sdk";
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useTranslation } from 'react-i18next'; // Import useTranslation
 import { ProcessedEvent } from "@/components/ActivityTimeline";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { ChatMessagesView } from "@/components/ChatMessagesView";
+import LanguageSwitcher from "@/components/LanguageSwitcher"; // Import LanguageSwitcher
 
 export default function App() {
+  const { t } = useTranslation(); // Initialize t function
   const [processedEventsTimeline, setProcessedEventsTimeline] = useState<
     ProcessedEvent[]
   >([]);
@@ -33,7 +36,7 @@ export default function App() {
       let processedEvent: ProcessedEvent | null = null;
       if (event.generate_query) {
         processedEvent = {
-          title: "Generating Search Queries",
+          title: t('app.generatingSearchQueries'),
           data: event.generate_query.query_list.join(", "),
         };
       } else if (event.web_research) {
@@ -50,30 +53,28 @@ export default function App() {
           }).join("\n");
         }
 
-        let dataString = `Gathered ${numSources} sources.`;
+        let dataString = t('app.gatheredSources', { numSources });
         if (numSources > 0) {
-          dataString += ` Top sources:\n${sourcesDetails}`;
+          dataString += ` ${t('app.topSources', { sourcesDetails })}`;
         } else {
-          dataString += " No sources found.";
+          dataString += ` ${t('app.noSourcesFound')}`;
         }
 
         processedEvent = {
-          title: "Web Research",
+          title: t('app.webResearch'),
           data: dataString,
         };
       } else if (event.reflection) {
         processedEvent = {
-          title: "Reflection",
+          title: t('app.reflection'),
           data: event.reflection.is_sufficient
-            ? "Search successful, generating final answer."
-            : `Need more information, searching for ${event.reflection.follow_up_queries.join(
-                ", "
-              )}`,
+            ? t('app.searchSuccessful')
+            : t('app.needMoreInformation', { follow_up_queries: event.reflection.follow_up_queries.join(", ") }),
         };
       } else if (event.finalize_answer) {
         processedEvent = {
-          title: "Finalizing Answer",
-          data: "Composing and presenting the final answer.",
+          title: t('app.finalizingAnswer'),
+          data: t('app.composingFinalAnswer'),
         };
         hasFinalizeEventOccurredRef.current = true;
       }
@@ -166,6 +167,7 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-neutral-800 text-neutral-100 font-sans antialiased">
+      <LanguageSwitcher /> {/* Add LanguageSwitcher here */}
       <main className="flex-1 flex flex-col overflow-hidden max-w-4xl mx-auto w-full">
         <div
           className={`flex-1 overflow-y-auto ${
