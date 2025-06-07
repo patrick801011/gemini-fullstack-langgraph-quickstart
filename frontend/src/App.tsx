@@ -37,9 +37,18 @@ export default function App() {
     onUpdateEvent: (event: any) => {
       let processedEvent: ProcessedEvent | null = null;
       if (event.generate_query) {
+        let queryData = "No queries generated"; // Default value
+        if (Array.isArray(event.generate_query.query_list) && event.generate_query.query_list.length > 0) {
+          queryData = event.generate_query.query_list.join(", ");
+        } else if (event.generate_query.query_list) {
+          // If it's not an array but some other truthy value, perhaps log or handle specifically
+          // For now, we can still say "No queries generated" or try to stringify it if that makes sense.
+          // Keeping it simple for this fix:
+          console.warn("event.generate_query.query_list was not an array:", event.generate_query.query_list);
+        }
         processedEvent = {
           title: "Generating Search Queries",
-          data: event.generate_query.query_list.join(", "),
+          data: queryData,
         };
       } else if (event.web_research) {
         const sources = event.web_research.sources_gathered || [];
