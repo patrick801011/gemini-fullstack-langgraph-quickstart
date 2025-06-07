@@ -17,6 +17,7 @@ export default function App() {
   >({});
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const hasFinalizeEventOccurredRef = useRef(false);
+  const [isAiResponseComplete, setIsAiResponseComplete] = useState(false);
 
   const thread = useStream<{
     messages: Message[];
@@ -30,14 +31,29 @@ export default function App() {
     assistantId: "agent",
     messagesKey: "messages",
     onFinish: (event: any) => {
-      console.log(event);
+      console.log("Stream finished:", event); // Optional: for debugging
+      // Only set true if a finalize_answer event actually occurred during this stream.
+      if (hasFinalizeEventOccurredRef.current) {
+        setIsAiResponseComplete(true);
+      }
     },
     onUpdateEvent: (event: any) => {
       let processedEvent: ProcessedEvent | null = null;
       if (event.generate_query) {
+        let queryData = "No queries generated"; // Default value
+        if (Array.isArray(event.generate_query.query_list) && event.generate_query.query_list.length > 0) {
+          queryData = event.generate_query.query_list.join(", ");
+        } else if (event.generate_query.query_list) {
+          // If it's not an array but some other truthy value, perhaps log or handle specifically
+          // For now, we can still say "No queries generated" or try to stringify it if that makes sense.
+          // Keeping it simple for this fix:
+          console.warn("event.generate_query.query_list was not an array:", event.generate_query.query_list);
+        }
         processedEvent = {
-          title: t('app.generatingSearchQueries'),
-          data: event.generate_query.query_list.join(", "),
+        enhance-web-research-display
+          title: "Generating Search Queries",
+          data: queryData,
+
         };
       } else if (event.web_research) {
         const sources = event.web_research.sources_gathered || [];
@@ -65,11 +81,21 @@ export default function App() {
           data: dataString,
         };
       } else if (event.reflection) {
+        let reflectionData = "Search successful, generating final answer."; // is_sufficient 為 true 時的預設值
+        if (!event.reflection.is_sufficient) {
+          const followUpQueries = event.reflection.follow_up_queries;
+          if (Array.isArray(followUpQueries) && followUpQueries.length > 0) {
+            reflectionData = `Need more information, searching for ${followUpQueries.join(", ")}`;
+          } else {
+            reflectionData = "Need more information, but no specific follow-up queries provided or list is invalid.";
+            console.warn("event.reflection.follow_up_queries was not a non-empty array:", followUpQueries);
+          }
+        }
         processedEvent = {
-          title: t('app.reflection'),
-          data: event.reflection.is_sufficient
-            ? t('app.searchSuccessful')
-            : t('app.needMoreInformation', { follow_up_queries: event.reflection.follow_up_queries.join(", ") }),
+enhance-web-research-display
+          title: "Reflection",
+          data: reflectionData,
+
         };
       } else if (event.finalize_answer) {
         processedEvent = {
@@ -99,27 +125,27 @@ export default function App() {
   }, [thread.messages]);
 
   useEffect(() => {
-    if (
-      hasFinalizeEventOccurredRef.current &&
-      !thread.isLoading &&
-      thread.messages.length > 0
-    ) {
+    if (isAiResponseComplete && thread.messages.length > 0) {
       const lastMessage = thread.messages[thread.messages.length - 1];
       if (lastMessage && lastMessage.type === "ai" && lastMessage.id) {
+        // Capture the timeline as it is when AI response is marked complete.
         setHistoricalActivities((prev) => ({
           ...prev,
           [lastMessage.id!]: [...processedEventsTimeline],
         }));
       }
+      // Reset flags for the next interaction cycle
+      setIsAiResponseComplete(false);
       hasFinalizeEventOccurredRef.current = false;
     }
-  }, [thread.messages, thread.isLoading, processedEventsTimeline]);
+  }, [isAiResponseComplete, thread.messages, processedEventsTimeline]); // Dependencies
 
   const handleSubmit = useCallback(
     (submittedInputValue: string, effort: string, model: string) => {
       if (!submittedInputValue.trim()) return;
       setProcessedEventsTimeline([]);
       hasFinalizeEventOccurredRef.current = false;
+      setIsAiResponseComplete(false); // Add this line
 
       // convert effort to, initial_search_query_count and max_research_loops
       // low means max 1 loop and 1 query
