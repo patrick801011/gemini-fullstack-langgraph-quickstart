@@ -50,7 +50,6 @@ export default function App() {
           console.warn("event.generate_query.query_list was not an array:", event.generate_query.query_list);
         }
         processedEvent = {
-        enhance-web-research-display
           title: "Generating Search Queries",
           data: queryData,
 
@@ -92,7 +91,6 @@ export default function App() {
           }
         }
         processedEvent = {
-enhance-web-research-display
           title: "Reflection",
           data: reflectionData,
 
