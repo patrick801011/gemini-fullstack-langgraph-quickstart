@@ -1,11 +1,14 @@
 import { useStream } from "@langchain/langgraph-sdk/react";
 import type { Message } from "@langchain/langgraph-sdk";
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useTranslation } from 'react-i18next'; // Import useTranslation
 import { ProcessedEvent } from "@/components/ActivityTimeline";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { ChatMessagesView } from "@/components/ChatMessagesView";
+import LanguageSwitcher from "@/components/LanguageSwitcher"; // Import LanguageSwitcher
 
 export default function App() {
+  const { t } = useTranslation(); // Initialize t function
   const [processedEventsTimeline, setProcessedEventsTimeline] = useState<
     ProcessedEvent[]
   >([]);
@@ -47,8 +50,10 @@ export default function App() {
           console.warn("event.generate_query.query_list was not an array:", event.generate_query.query_list);
         }
         processedEvent = {
+        enhance-web-research-display
           title: "Generating Search Queries",
           data: queryData,
+
         };
       } else if (event.web_research) {
         const sources = event.web_research.sources_gathered || [];
@@ -64,15 +69,15 @@ export default function App() {
           }).join("\n");
         }
 
-        let dataString = `Gathered ${numSources} sources.`;
+        let dataString = t('app.gatheredSources', { numSources });
         if (numSources > 0) {
-          dataString += ` Top sources:\n${sourcesDetails}`;
+          dataString += ` ${t('app.topSources', { sourcesDetails })}`;
         } else {
-          dataString += " No sources found.";
+          dataString += ` ${t('app.noSourcesFound')}`;
         }
 
         processedEvent = {
-          title: "Web Research",
+          title: t('app.webResearch'),
           data: dataString,
         };
       } else if (event.reflection) {
@@ -87,13 +92,15 @@ export default function App() {
           }
         }
         processedEvent = {
+enhance-web-research-display
           title: "Reflection",
           data: reflectionData,
+
         };
       } else if (event.finalize_answer) {
         processedEvent = {
-          title: "Finalizing Answer",
-          data: "Composing and presenting the final answer.",
+          title: t('app.finalizingAnswer'),
+          data: t('app.composingFinalAnswer'),
         };
         hasFinalizeEventOccurredRef.current = true;
       }
@@ -186,6 +193,7 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-neutral-800 text-neutral-100 font-sans antialiased">
+      <LanguageSwitcher /> {/* Add LanguageSwitcher here */}
       <main className="flex-1 flex flex-col overflow-hidden max-w-4xl mx-auto w-full">
         <div
           className={`flex-1 overflow-y-auto ${
