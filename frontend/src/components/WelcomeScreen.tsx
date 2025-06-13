@@ -29,6 +29,11 @@ const translations = {
     helpText: "請問有什麼可以幫您？",
     poweredBy: "由 Google Gemini 和 LangChain LangGraph 強力驅動。",
   },
+  ja: {
+    welcome: "ようこそ。",
+    helpText: "何かお手伝いできることはありますか？",
+    poweredBy: "Google Gemini と LangChain LangGraph を搭載しています。",
+  },
 };
 
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
@@ -57,6 +62,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           <SelectContent className="bg-neutral-700 border-neutral-600 text-neutral-300">
             <SelectItem value="en" className="focus:bg-sky-600 focus:text-neutral-100">English</SelectItem>
             <SelectItem value="zh-TW" className="focus:bg-sky-600 focus:text-neutral-100">繁體中文</SelectItem>
+            <SelectItem value="ja" className="focus:bg-sky-600 focus:text-neutral-100">日本語</SelectItem>
           </SelectContent>
         </Select>
       </div>
