@@ -21,7 +21,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         Welcome.
       </h1>
       <p className="text-xl md:text-2xl text-neutral-400">
-        How can I help you today?
+        Naniga suki?
       </p>
     </div>
     <div className="w-full mt-4">
