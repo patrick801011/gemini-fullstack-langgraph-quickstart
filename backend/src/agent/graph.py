@@ -1,4 +1,5 @@
 import os
+import re
 
 from agent.tools_and_schemas import SearchQueryList, Reflection
 from dotenv import load_dotenv
@@ -8,6 +9,7 @@ from langgraph.graph import StateGraph
 from langgraph.graph import START, END
 from langchain_core.runnables import RunnableConfig
 from google.genai import Client
+from agent.traffic_regulations_tool import TrafficRegulationsRAG, REGULATIONS_TEXT
 
 from agent.state import (
     OverallState,
@@ -38,6 +40,9 @@ if os.getenv("GEMINI_API_KEY") is None:
 
 # Used for Google Search API
 genai_client = Client(api_key=os.getenv("GEMINI_API_KEY"))
+
+# Instantiate the RAG tool globally
+traffic_rag_tool = TrafficRegulationsRAG(REGULATIONS_TEXT)
 
 
 # Nodes
@@ -78,10 +83,85 @@ def generate_query(state: OverallState, config: RunnableConfig) -> QueryGenerati
     )
     # Generate the search queries
     result = structured_llm.invoke(formatted_prompt)
-    return {"query_list": result.query}
+    #return {"query_list": result.query} # Original return
+
+    # Heuristic Implementation Detail for traffic query detection
+    research_topic_str = get_research_topic(state["messages"]).lower()
+    is_traffic_query = False
+    traffic_keywords = ["交通", "法規", "條例", "罰鍰", "罰款", "道路交通管理處罰條例"]
+
+    for keyword in traffic_keywords:
+        if keyword in research_topic_str:
+            is_traffic_query = True
+            break
+
+    match = re.search(r"第\s*\d+\s*條", research_topic_str)
+    if match:
+        is_traffic_query = True
+        # Normalize the matched group: remove spaces and ensure it's a list
+        final_query_list = [match.group(0).replace(" ", "")]
+    elif is_traffic_query: # It was a keyword match but not a specific article number
+        if result.query:
+                final_query_list = [result.query[0]] # Use the first generated query
+        else: # Fallback if LLM produced no queries
+            final_query_list = [research_topic_str] # Use the original topic
+    else: # Not a traffic query
+        final_query_list = result.query
+
+    print(f">>> generate_query: is_traffic_query={is_traffic_query}, final_query_list={final_query_list}")
+    # Ensure query_list is always a list
+    if isinstance(final_query_list, str): # Should not happen with current logic but as a safeguard
+        final_query_list = [final_query_list]
+
+    # Ensure all elements in final_query_list are strings if they are SearchQuery objects
+    # The RAG tool expects a list of strings, but the web_research node might expect SearchQuery objects or strings.
+    # For now, let's assume string queries are fine for both paths.
+    # If result.query contains objects, extract the query string.
+    # The provided heuristic implies final_query_list will contain strings.
+    # query_list in OverallState is Annotated[list, operator.add], typically of strings based on SearchQueryList.
+    # The original `result.query` from `SearchQueryList` would be a list of `SearchQuery` objects (which are Pydantic models with a 'query' field).
+    # The heuristic needs to ensure it returns a list of strings if that's what downstream nodes expect or handle SearchQuery objects.
+    # Given `final_query_list = [result.query[0]]` and `final_query_list = result.query`,
+    # we need to ensure these are lists of strings.
+
+    processed_query_list = []
+    if final_query_list: # Ensure final_query_list is not None or empty
+        for item in final_query_list:
+            if hasattr(item, 'query'): # If item is a SearchQuery object
+                processed_query_list.append(item.query)
+            else: # If item is already a string
+                processed_query_list.append(item)
+
+    # Preserve initial_search_query_count if it was part of the original state update logic
+    # The original return was just `{"query_list": result.query}`.
+    # QueryGenerationState is `query_list: list[Query]`. Query is `query: str, rationale: str`.
+    # The heuristic's `final_query_list` is a list of strings. This is a change in type for query_list.
+    # For now, we pass it as list of strings. This might need adjustment if other parts of the graph
+    # strictly expect `list[Query]` objects. However, `continue_to_web_research` iterates it
+    # and passes `search_query` which is then used by `web_research`.
+    # `query_traffic_regulations` also expects `state["search_query"][0]` to be a string.
+    # So, list of strings seems to be the desired format here.
+
+    return {"query_list": processed_query_list, "is_traffic_query": is_traffic_query, "initial_search_query_count": state.get("initial_search_query_count")}
 
 
-def continue_to_web_research(state: QueryGenerationState):
+def decide_next_step_after_query_gen(state: OverallState):
+    print(f">>> In decide_next_step_after_query_gen, is_traffic_query: {state.get('is_traffic_query')}")
+    if state.get("is_traffic_query"):
+        # Send the first query from query_list to the traffic tool.
+        # query_traffic_regulations expects search_query to be a list.
+        return [Send("query_traffic_regulations", {"search_query": state["query_list"], "id": 0})]
+    else:
+        # This is the original logic from continue_to_web_research
+        return [
+            Send("web_research", {"search_query": search_query, "id": int(idx)})
+            for idx, search_query in enumerate(state["query_list"])
+        ]
+
+# This function might be unused now if generate_query directly calls decide_next_step_after_query_gen
+# or if the conditional edge directly uses decide_next_step_after_query_gen.
+# For now, keeping it as the subtask did not ask to remove it explicitly.
+def continue_to_web_research(state: QueryGenerationState): # state here is OverallState now if called from generate_query's new signature.
     """LangGraph node that sends the search queries to the web research node.
 
     This is used to spawn n number of web research nodes, one for each search query.
@@ -217,6 +297,39 @@ def evaluate_research(
         ]
 
 
+def query_traffic_regulations(state: OverallState, config: RunnableConfig) -> OverallState:
+    """LangGraph node that queries the local traffic regulations RAG tool."""
+    print(">>> In query_traffic_regulations node")
+    query = ""
+    if isinstance(state["search_query"], list) and state["search_query"]:
+        query = state["search_query"][0]
+    elif isinstance(state["search_query"], str):
+        query = state["search_query"]
+    else:
+        # Fallback or error if query is not in expected format
+        return {
+            "web_research_result": ["Error: No valid query found for traffic regulations."],
+            "messages": []
+        }
+
+    if not query:
+        return {
+            "web_research_result": ["Error: Empty query for traffic regulations."],
+            "messages": []
+        }
+
+    print(f"Querying traffic RAG tool with: {query}")
+    rag_result = traffic_rag_tool.query(query)
+    print(f"RAG tool result: {rag_result}")
+
+    # Ensure web_research_result is a list of strings
+    return {
+        "web_research_result": [rag_result if isinstance(rag_result, str) else str(rag_result)],
+        "messages": [], # Clear previous messages or set as needed for finalize_answer
+        "sources_gathered": [] # No external sources for RAG tool
+    }
+
+
 def finalize_answer(state: OverallState, config: RunnableConfig):
     """LangGraph node that finalizes the research summary.
 
@@ -277,17 +390,23 @@ builder = StateGraph(OverallState, config_schema=Configuration)
 builder.add_node("generate_query", generate_query)
 builder.add_node("web_research", web_research)
 builder.add_node("reflection", reflection)
+builder.add_node("query_traffic_regulations", query_traffic_regulations) # Ensure this node is added
 builder.add_node("finalize_answer", finalize_answer)
 
 # Set the entrypoint as `generate_query`
 # This means that this node is the first one called
 builder.add_edge(START, "generate_query")
 # Add conditional edge to continue with search queries in a parallel branch
+# builder.add_conditional_edges(
+#    "generate_query", continue_to_web_research, ["web_research"]
+# ) # Old edge
 builder.add_conditional_edges(
-    "generate_query", continue_to_web_research, ["web_research"]
+    "generate_query", decide_next_step_after_query_gen, ["web_research", "query_traffic_regulations"]
 )
-# Reflect on the web research
+# Reflect on the web research (if web_research path is taken)
 builder.add_edge("web_research", "reflection")
+# Route from traffic regulations query directly to finalize_answer
+builder.add_edge("query_traffic_regulations", "finalize_answer")
 # Evaluate the research
 builder.add_conditional_edges(
     "reflection", evaluate_research, ["web_research", "finalize_answer"]
